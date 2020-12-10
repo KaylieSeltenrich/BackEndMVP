@@ -5,6 +5,7 @@ import dbcreds
 import random
 import string
 from flask_cors import CORS
+import datetime
 
 def createLoginToken():
     letters = string.ascii_letters
@@ -140,11 +141,56 @@ def login():
 @app.route('/api/boards', methods=['GET','POST','DELETE'])
 def boards():
 
-    if request.method == 'POST':
+    if request.method == 'GET':
+        conn = None
+        cursor = None
+        boards = None
+        board_colours = request.args.get("colors")
+        user_id = request.args.get("userId")
+    
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            if(user_id == None):
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId")
+                boards = cursor.fetchall()
+                print(boards)
+            else: 
+                cursor.execute("SELECT user.username, user.id, b.title, b.image, b.createdAt, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
+                boards = cursor.fetchall()
+                print(boards)
+           
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(boards!= None):
+                board_info = []
+                for board in boards:
+                    board_info.append({
+                        "userId": user_id,
+                        "username": board[0],
+                        "title": board[2],
+                        "image": board[3]
+                        "createdAt": board[4],
+                        "colors": board_colours,
+                        })
+                return Response(json.dumps(board_info, default=str), mimetype="application/json", status=200)
+            else: 
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
+
+    elif request.method == 'POST':
         conn = None
         cursor = None
         login_token = request.json.get("loginToken")
-        board_colours = request.json.get("colours")
+        board_colours = request.json.get("colors")
         board_image = request.json.get("image")
         board_title = request.json.get("title")
         createdAt = datetime.datetime.now().strftime("%Y-%m-%d")
@@ -155,7 +201,7 @@ def boards():
             cursor = conn.cursor() 
             cursor.execute("SELECT us.userId, u.username FROM user_session us INNER JOIN user u ON us.userId=u.id WHERE loginToken=?",[login_token,])
             user = cursor.fetchone()
-            cursor.execute("INSERT INTO board(colours,image,title) VALUES (?,?,?)", [board_colours,board_image,board_title])
+            cursor.execute("INSERT INTO board(image,title,colour1,colour2,colour3,colour4,colour5,colour6,colour7,colour8,colour9,colour10,userId) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)", [board_image,board_title,board_colours[0],board_colours[1],board_colours[2],board_colours[3],board_colours[4],board_colours[5],board_colours[6],board_colours[7],board_colours[8],board_colours[9],user[0]])
             conn.commit()
             rows = cursor.rowcount
             boardId = cursor.lastrowid
@@ -173,12 +219,14 @@ def boards():
             if(rows == 1):
                 board_information = {
                     "id": boardId,
-                    "title": board_title,
-                    "colours": board_colours,
                     "image": board_image,
+                    "title": board_title,
+                    "colors": board_colours,
                     "createdAt": createdAt,
                     "userId": user[0],
                 }
                 return Response(json.dumps(board_information, default=str), mimetype="application/json", status=201)
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
+    
+    
