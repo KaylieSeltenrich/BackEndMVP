@@ -145,7 +145,6 @@ def boards():
         conn = None
         cursor = None
         boards = None
-        board_colours = request.args.get("colors")
         user_id = request.args.get("userId")
     
         try:
@@ -155,8 +154,9 @@ def boards():
                 cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId")
                 boards = cursor.fetchall()
                 print(boards)
+    
             else: 
-                cursor.execute("SELECT user.username, user.id, b.title, b.image, b.createdAt, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
                 boards = cursor.fetchall()
                 print(boards)
            
@@ -174,12 +174,21 @@ def boards():
                 board_info = []
                 for board in boards:
                     board_info.append({
-                        "userId": user_id,
+                        "userId": board[4],
                         "username": board[0],
-                        "title": board[2],
-                        "image": board[3]
-                        "createdAt": board[4],
-                        "colors": board_colours,
+                        "title": board[1],
+                        "image": board[2],
+                        "createdAt": board[3],
+                        "colour1": board[5],
+                        "colour2": board[6],
+                        "colour3": board[7],
+                        "colour4": board[8],
+                        "colour5": board[9],
+                        "colour6": board[10],
+                        "colour7": board[11],
+                        "colour8": board[12],
+                        "colour9": board[13],
+                        "colour10": board[14],
                         })
                 return Response(json.dumps(board_info, default=str), mimetype="application/json", status=200)
             else: 
@@ -229,4 +238,38 @@ def boards():
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
     
-    
+    elif request.method == 'DELETE':
+        conn = None
+        cursor = None
+        login_token = request.json.get("loginToken")
+        board_id = request.json.get("id")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor() 
+            cursor.execute("SELECT userId FROM user_session WHERE loginToken=?", [login_token,])
+            user = cursor.fetchall()[0][0]
+            cursor.execute("SELECT userId FROM board WHERE id=?", [board_id,])
+            board_owner = cursor.fetchall()[0][0]
+            if(user == board_owner):
+                cursor.execute("DELETE FROM board WHERE id=?", [board_id,])
+                conn.commit()
+                rows = cursor.rowcount
+            else:
+                print("Unable to delete board.")
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Board Deleted Succesfully!", mimetype="text/html", status=204)
+            else:
+                return Response("Board not Deleted!", mimetype="text/html", status=500)
