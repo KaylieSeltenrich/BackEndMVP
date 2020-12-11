@@ -151,12 +151,12 @@ def boards():
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
             if(user_id == None):
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId")
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId")
                 boards = cursor.fetchall()
                 print(boards)
     
             else: 
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
                 boards = cursor.fetchall()
                 print(boards)
            
@@ -175,20 +175,21 @@ def boards():
                 for board in boards:
                     board_info.append({
                         "userId": board[4],
+                        "id": board[5],
                         "username": board[0],
                         "title": board[1],
                         "image": board[2],
                         "createdAt": board[3],
-                        "colour1": board[5],
-                        "colour2": board[6],
-                        "colour3": board[7],
-                        "colour4": board[8],
-                        "colour5": board[9],
-                        "colour6": board[10],
-                        "colour7": board[11],
-                        "colour8": board[12],
-                        "colour9": board[13],
-                        "colour10": board[14],
+                        "colour1": board[6],
+                        "colour2": board[7],
+                        "colour3": board[8],
+                        "colour4": board[9],
+                        "colour5": board[10],
+                        "colour6": board[11],
+                        "colour7": board[12],
+                        "colour8": board[13],
+                        "colour9": board[14],
+                        "colour10": board[15],
                         })
                 return Response(json.dumps(board_info, default=str), mimetype="application/json", status=200)
             else: 
