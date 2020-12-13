@@ -119,7 +119,7 @@ def login():
             cursor.execute("DELETE FROM user_session WHERE loginToken=?",[user_loginToken,])
             conn.commit()
             rows = cursor.rowcount
-            print(rows)
+            
 
         except Exception as error:
             print("Something else went wrong: ")
@@ -138,7 +138,7 @@ def login():
     
 
     
-@app.route('/api/boards', methods=['GET','POST','DELETE'])
+@app.route('/api/boards', methods=['GET','POST','PATCH','DELETE'])
 def boards():
 
     if request.method == 'GET':
@@ -146,19 +146,18 @@ def boards():
         cursor = None
         boards = None
         user_id = request.args.get("userId")
+        offset = request.args.get("offset")
     
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
             if(user_id == None):
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId")
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId ORDER BY b.id DESC LIMIT 5 OFFSET ?", [offset,])
                 boards = cursor.fetchall()
-                print(boards)
-    
             else: 
                 cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
                 boards = cursor.fetchall()
-                print(boards)
+               
            
         except Exception as error:
             print("Something else went wrong: ")
@@ -238,7 +237,49 @@ def boards():
                 return Response(json.dumps(board_information, default=str), mimetype="application/json", status=201)
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
-    
+
+
+    elif request.method == 'PATCH':
+        conn = None
+        cursor = None
+        board_title = request.json.get("title")
+        login_token = request.json.get("loginToken")
+        board_id = request.json.get("id")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor() 
+            cursor.execute("SELECT userId FROM user_session WHERE loginToken=?", [login_token,])
+            user = cursor.fetchall()[0][0]
+            cursor.execute("SELECT userId FROM board WHERE id=?", [board_id,])
+            board_owner = cursor.fetchall()[0][0]
+            if(user == board_owner):
+                cursor.execute("UPDATE board SET title=? WHERE id=?", [board_title,board_id,])
+                conn.commit()
+                rows = cursor.rowcount
+            else:
+                print("Unable to update title")
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                board_information = {
+                    "id": board_id,
+                    "title": board_title
+                }
+                return Response(json.dumps(board_information, default=str), mimetype="application/json", status=200)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
     elif request.method == 'DELETE':
         conn = None
         cursor = None
@@ -274,3 +315,79 @@ def boards():
                 return Response("Board Deleted Succesfully!", mimetype="text/html", status=204)
             else:
                 return Response("Board not Deleted!", mimetype="text/html", status=500)
+
+@app.route('/api/board-likes', methods=['GET','POST','DELETE'])
+def boardLikes():
+    if request.method == 'GET':
+        conn = None
+        cursor = None
+        board_likes = None
+        board_id = request.args.get("boardId")
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            if(board_id == None):
+                cursor.execute("SELECT u.username, u.id, bl.boardId FROM user u INNER JOIN board_like bl ON u.id=bl.userId")
+                board_likes = cursor.fetchall()
+            else:
+                cursor.execute("SELECT u.username, u.id, bl.boardId FROM user u INNER JOIN board_like bl ON u.id=bl.userId WHERE bl.boardId=?", [board_id,])
+                board_likes = cursor.fetchall()
+ 
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(board_likes != None):
+                boardlike_info = []
+                for board_like in board_likes:
+                    boardlike_info.append({
+                        "boardId": board_like[2],
+                        "userId": board_like[1],
+                        "username": board_like[0],
+                        })
+                return Response(json.dumps(boardlike_info, default=str), mimetype="application/json", status=200)
+            else: 
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
+    elif request.method == 'POST':
+        conn = None
+        cursor = None
+        board_id = request.json.get("boardId")
+        login_token = request.json.get("loginToken")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT userId from user_session WHERE loginToken=?", [login_token,])
+            user = cursor.fetchone()
+            cursor.execute("SELECT username FROM user WHERE id=?", [user[0],])
+            username = cursor.fetchone()
+            cursor.execute("INSERT INTO board_like(boardId,id) VALUES (?,?)", [board_id,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Liked Board!", mimetype="text/html", status=201)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
+
+                
