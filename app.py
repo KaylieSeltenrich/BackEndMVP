@@ -155,7 +155,7 @@ def boards():
                 cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId ORDER BY b.id DESC LIMIT 5 OFFSET ?", [offset,])
                 boards = cursor.fetchall()
             else: 
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=?",[user_id,])
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=? ORDER BY b.id DESC LIMIT 5 OFFSET ?",[user_id,offset])
                 boards = cursor.fetchall()
                
            
@@ -359,7 +359,7 @@ def boardLikes():
     elif request.method == 'POST':
         conn = None
         cursor = None
-        board_id = request.json.get("boardId")
+        board_id = request.json.get("id")
         login_token = request.json.get("loginToken")
         rows = None
 
@@ -370,7 +370,7 @@ def boardLikes():
             user = cursor.fetchone()
             cursor.execute("SELECT username FROM user WHERE id=?", [user[0],])
             username = cursor.fetchone()
-            cursor.execute("INSERT INTO board_like(boardId,id) VALUES (?,?)", [board_id,user[0],])
+            cursor.execute("INSERT INTO board_like(boardId,userId) VALUES (?,?)", [board_id,user[0],])
             conn.commit()
             rows = cursor.rowcount
 
