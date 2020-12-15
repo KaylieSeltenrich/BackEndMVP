@@ -388,6 +388,152 @@ def boardLikes():
                 return Response("Liked Board!", mimetype="text/html", status=201)
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
+    
+    elif request.method == 'DELETE':
+        conn = None
+        cursor = None
+        board_id = request.json.get("id")
+        login_token = request.json.get("loginToken")
+        rows = None
 
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor() 
+            cursor.execute("SELECT us.userId FROM user_session us INNER JOIN board_like bl ON us.userId=bl.userId WHERE loginToken=?",[login_token,])
+            user = cursor.fetchone()
+            cursor.execute("DELETE FROM board_like WHERE boardId=? AND userId=?", [board_id,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Board like removed successfully!", mimetype="text/html", status=204)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
+
+@app.route('/api/board-favourites', methods=['GET','POST','DELETE'])
+def boardFavourites():
+    if request.method == 'GET':
+        conn = None
+        cursor = None
+        board_faves = None
+        board_id = request.args.get("boardId")
+        user_id = request.args.get("userId")
+        offset = request.args.get("offset")
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT u.username, u.id, bf.boardId, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user u INNER JOIN board_favourite bf ON u.id=bf.userId INNER JOIN board b ON b.id = bf.boardId WHERE u.id=? ORDER BY b.id DESC LIMIT 5 OFFSET ?", [user_id,offset])
+            board_faves = cursor.fetchall()
+ 
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(board_faves != None):
+                boardfave_info = []
+                for board_fave in board_faves:
+                    boardfave_info.append({
+                        "boardId": board_fave[2],
+                        "userId": board_fave[1],
+                        "username": board_fave[0],
+                        "title": board_fave[3],
+                        "image": board_fave[4],
+                        "createdAt": board_fave[5],
+                        "colour1": board_fave[8],
+                        "colour2": board_fave[9],
+                        "colour3": board_fave[10],
+                        "colour4": board_fave[11],
+                        "colour5": board_fave[12],
+                        "colour6": board_fave[13],
+                        "colour7": board_fave[14],
+                        "colour8": board_fave[15],
+                        "colour9": board_fave[16],
+                        "colour10": board_fave[17],
+                        })
+                return Response(json.dumps(boardfave_info, default=str), mimetype="application/json", status=200)
+            else: 
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+
+    elif request.method == 'POST':
+        conn = None
+        cursor = None
+        board_id = request.json.get("id")
+        login_token = request.json.get("loginToken")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT userId from user_session WHERE loginToken=?", [login_token,])
+            user = cursor.fetchone()
+            cursor.execute("SELECT username FROM user WHERE id=?", [user[0],])
+            username = cursor.fetchone()
+            cursor.execute("INSERT INTO board_favourite(boardId,userId) VALUES (?,?)", [board_id,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Favourited Board!", mimetype="text/html", status=201)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
+    
+    elif request.method == 'DELETE':
+        conn = None
+        cursor = None
+        board_id = request.json.get("id")
+        login_token = request.json.get("loginToken")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor() 
+            cursor.execute("SELECT us.userId FROM user_session us INNER JOIN board_favourite bf ON us.userId=bf.userId WHERE loginToken=?",[login_token,])
+            user = cursor.fetchone()
+            cursor.execute("DELETE FROM board_favourite WHERE boardId=? AND userId=?", [board_id,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Board favourite removed successfully!", mimetype="text/html", status=204)
+            else:
+                return Response("Something went wrong!", mimetype="text/html", status=500)
 
                 
