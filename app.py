@@ -536,4 +536,39 @@ def boardFavourites():
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
 
+
+@app.route('/api/all-faves', methods=['GET'])
+def allboardFavourites():
+    if request.method == 'GET':
+        conn = None
+        cursor = None
+        board_faves = None
+        board_id = request.args.get("boardId")
+       
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM board_favourite WHERE boardId=?", [board_id,])
+            board_faves = cursor.fetchall()
+ 
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(board_faves != None):
+                boardfave_info = []
+                for board_fave in board_faves:
+                    boardfave_info.append({
+                        "boardId": board_id,
+                        "userId": board_fave[2],
+                        })
+                return Response(json.dumps(boardfave_info, default=str), mimetype="application/json", status=200)
+            else: 
+                return Response("Something went wrong!", mimetype="text/html", status=500)
                 
