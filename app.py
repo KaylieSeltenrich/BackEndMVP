@@ -16,7 +16,7 @@ app = Flask(__name__)
 CORS(app)
 
 
-@app.route('/api/users', methods=['GET','POST','PATCH','DELETE'])
+@app.route('/api/users', methods=['POST','PATCH','DELETE'])
 def users():
     if request.method == 'POST':
         conn = None
@@ -61,6 +61,85 @@ def users():
                 return Response(json.dumps(user_information, default=str), mimetype="application/json", status=201)
             else:
                 return Response("Something went wrong!", mimetype="text/html", status=500)
+
+    
+    elif request.method == 'PATCH':
+        conn = None
+        cursor = None
+        user_username = request.json.get("username")
+        user_email = request.json.get("email")
+        user_password = request.json.get("password")
+        user_logintoken = request.json.get("loginToken")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT userId FROM user_session WHERE loginToken=?",[user_logintoken,])
+            user = cursor.fetchone()
+            if user_username != "" and user_username != None:
+                cursor.execute("UPDATE user SET username=? WHERE id=?", [user_username,user[0],])
+            if user_password != "" and user_password != None:
+                cursor.execute("UPDATE user SET password=? WHERE id=?", [user_password,user[0],])
+            if user_email != "" and user_email != None:
+                cursor.execute("UPDATE user SET email=? WHERE id=?", [user_email,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+            print(rows)
+            cursor.execute("SELECT * FROM user WHERE id=?", [user[0],])
+            user = cursor.fetchone()
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if cursor != None:
+                cursor.close()
+            if conn != None:
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                user_information = {
+                    "userId": user[3],
+                    "email": user[2],
+                    "username": user[0],
+                }
+                return Response(json.dumps(user_information, default=str), mimetype="application/json", status=200)
+            else:
+                return Response("Updating User Failed", mimetype="text/html", status=500)
+
+    
+    elif request.method == 'DELETE':
+        conn = None
+        cursor = None
+        user_password = request.json.get("password")
+        user_logintoken = request.json.get("loginToken")
+        rows = None
+
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT userId FROM user_session WHERE loginToken=?",[user_logintoken,])
+            user = cursor.fetchone()
+            cursor.execute("DELETE FROM user WHERE password=? AND id=?",[user_password,user[0],])
+            conn.commit()
+            rows = cursor.rowcount
+
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if cursor != None:
+                cursor.close()
+            if conn != None:
+                conn.rollback()
+                conn.close()
+            if(rows == 1):
+                return Response("Deleted User Successfully!", mimetype="text/html", status=204)
+            else:
+                return Response("Deleting User Failed", mimetype="text/html", status=500)
 
 
 @app.route('/api/login', methods=['POST','DELETE'])
