@@ -650,4 +650,34 @@ def allboardFavourites():
                 return Response(json.dumps(boardfave_info, default=str), mimetype="application/json", status=200)
             else: 
                 return Response("Something went wrong!", mimetype="text/html", status=500)
+
+
+@app.route('/api/most-liked', methods=['GET'])
+def mostLiked():
+    if request.method == 'GET':
+        conn = None
+        cursor = None
+        mostboard_likes = None
+       
+        try:
+            conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
+            cursor = conn.cursor()
+            cursor.execute("SELECT u.username, b.id, b.title, b.image, b.createdAt, b.userId, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10, COUNT(bl.boardId) FROM user u INNER JOIN board b ON u.id=b.userId INNER JOIN board_like bl ON bl.boardId=b.id WHERE bl.createdAt > DATE_SUB(NOW(),INTERVAL 1 MONTH) GROUP BY b.id ORDER BY COUNT(bl.boardId) DESC LIMIT 20")
+            mostboard_likes = cursor.fetchall()
+ 
+        except Exception as error:
+            print("Something else went wrong: ")
+            print(error)
+
+        finally:
+            if(cursor != None):
+                cursor.close()
+            if(conn != None):
+                conn.rollback()
+                conn.close()
+            if(mostboard_likes != None):
+    
+                return Response(json.dumps(mostboard_likes, default=str), mimetype="application/json", status=200)
+            else: 
+                return Response("Something went wrong!", mimetype="text/html", status=500)
                 
