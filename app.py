@@ -6,6 +6,7 @@ import random
 import string
 from flask_cors import CORS
 import datetime
+import hashlib
 
 def createLoginToken():
     letters = string.ascii_letters
@@ -15,7 +16,6 @@ def createLoginToken():
 app = Flask(__name__)
 CORS(app)
 
-
 @app.route('/api/users', methods=['POST','PATCH','DELETE'])
 def users():
     if request.method == 'POST':
@@ -23,7 +23,8 @@ def users():
         cursor = None
         user_username = request.json.get("username")
         user_email = request.json.get("email")
-        user_password = request.json.get("password")
+        user_password = hashlib.sha512(request.json.get("password").encode()).hexdigest()
+        
         rows = None
 
         try:
@@ -68,7 +69,7 @@ def users():
         cursor = None
         user_username = request.json.get("username")
         user_email = request.json.get("email")
-        user_password = request.json.get("password")
+        user_password = hashlib.sha512(request.json.get("password").encode()).hexdigest()
         user_logintoken = request.json.get("loginToken")
         rows = None
 
@@ -113,7 +114,7 @@ def users():
     elif request.method == 'DELETE':
         conn = None
         cursor = None
-        user_password = request.json.get("password")
+        user_password = hashlib.sha512(request.json.get("password").encode()).hexdigest()
         user_logintoken = request.json.get("loginToken")
         rows = None
 
@@ -150,7 +151,7 @@ def login():
         rows = None
         user = None
         user_email = request.json.get("email")
-        user_password = request.json.get("password")
+        user_password = hashlib.sha512(request.json.get("password").encode()).hexdigest()
         token_result = createLoginToken()
         
         try:
