@@ -231,10 +231,10 @@ def boards():
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
             if(user_id == None):
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId ORDER BY b.id DESC LIMIT 5 OFFSET ?", [offset,])
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId ORDER BY b.id DESC LIMIT 6 OFFSET ?", [offset,])
                 boards = cursor.fetchall()
             else: 
-                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=? ORDER BY b.id DESC LIMIT 5 OFFSET ?",[user_id,offset])
+                cursor.execute("SELECT user.username, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user INNER JOIN board b ON user.id=b.userId WHERE userId=? ORDER BY b.id DESC LIMIT 6 OFFSET ?",[user_id,offset])
                 boards = cursor.fetchall()
                
            
@@ -513,7 +513,7 @@ def boardFavourites():
         try:
             conn = mariadb.connect(host=dbcreds.host, password=dbcreds.password, user=dbcreds.user, port=dbcreds.port, database=dbcreds.database)
             cursor = conn.cursor()
-            cursor.execute("SELECT u.username, u.id, bf.boardId, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user u INNER JOIN board_favourite bf ON u.id=bf.userId INNER JOIN board b ON b.id = bf.boardId WHERE u.id=? ORDER BY b.id DESC LIMIT 5 OFFSET ?", [user_id,offset])
+            cursor.execute("SELECT u.username, u.id, bf.boardId, b.title, b.image, b.createdAt, b.userId, b.id, b.colour1, b.colour2, b.colour3, b.colour4, b.colour5, b.colour6, b.colour7, b.colour8, b.colour9, b.colour10 FROM user u INNER JOIN board_favourite bf ON u.id=bf.userId INNER JOIN board b ON b.id = bf.boardId WHERE u.id=? ORDER BY b.id DESC LIMIT 6 OFFSET ?", [user_id,offset])
             board_faves = cursor.fetchall()
  
         except Exception as error:
