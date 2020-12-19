@@ -1,3 +1,5 @@
 dbcreds.py
 __pycache__
 venv
+requirements.txt
+serve.py
